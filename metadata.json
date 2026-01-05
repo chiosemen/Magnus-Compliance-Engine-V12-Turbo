@@ -1,0 +1,5 @@
+{
+  "name": "Magnus Compliance Engine V12 Turbo",
+  "description": "AI-powered nonprofit compliance analysis dashboard featuring automated 990 ingestion, risk scoring, and Gemini-enhanced red flag reporting.",
+  "requestFramePermissions": []
+}
