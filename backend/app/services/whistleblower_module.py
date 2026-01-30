@@ -6,6 +6,7 @@ Version: 1.0.0
 
 from typing import List, Dict, Optional
 from datetime import datetime
+from ..utils.time_utils import now_utc
 from pydantic import BaseModel, Field
 from enum import Enum
 import logging
@@ -32,7 +33,7 @@ class WhistleblowerReport(BaseModel):
     submission_date: Optional[datetime] = None
     award_amount: Optional[float] = None
     agency_share_percentage: float = 0.15
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
     metadata: Dict = Field(default_factory=dict)
 
 class WhistleblowerModule:
@@ -68,7 +69,7 @@ class WhistleblowerModule:
             metadata=metadata or {}
         )
         
-        logger.info(f"Created whistleblower report draft {report_id} for client {client_id}")
+        logger.info("Created whistleblower report draft %s for client %s", report_id, client_id)
         return report
 
     def update_status(
@@ -83,12 +84,12 @@ class WhistleblowerModule:
         report.submission_status = new_status
         
         if new_status == SubmissionStatus.SUBMITTED:
-            report.submission_date = datetime.utcnow()
+            report.submission_date = now_utc()
             
         if new_status == SubmissionStatus.AWARDED and award_amount:
             report.award_amount = award_amount
             
-        logger.info(f"Updated report {report.report_id} status to {new_status}")
+        logger.info("Updated report %s status to %s", report.report_id, new_status)
         return report
 
     def calculate_agency_fee(self, report: WhistleblowerReport) -> float:

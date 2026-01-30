@@ -39,11 +39,11 @@ class IRSIntegrationService:
         """
         async with httpx.AsyncClient() as client:
             try:
-                logger.info(f"Fetching IRS data for EIN: {ein}")
+                logger.info("Fetching IRS data for EIN: %s", ein)
                 response = await client.get(f"{self.base_url}/organizations/{ein}.json")
                 
                 if response.status_code != 200:
-                    logger.error(f"IRS API returned error: {response.status_code}")
+                    logger.error("IRS API returned error: %s", response.status_code)
                     return None
                     
                 data = response.json()
@@ -61,7 +61,7 @@ class IRSIntegrationService:
                     raw_payload=data
                 )
             except Exception as e:
-                logger.error(f"Failed to fetch IRS data: {str(e)}")
+                logger.error("Failed to fetch IRS data: %s", str(e))
                 return None
 
     def map_to_transaction_stream(self, irs_data: IRS990Data) -> List[Dict]:

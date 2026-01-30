@@ -9,6 +9,7 @@ Version: 1.0.0
 from typing import List, Dict, Optional, Tuple
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
+from ..utils.time_utils import now_utc
 from enum import Enum
 import logging
 import statistics
@@ -52,7 +53,7 @@ class ComplianceScore(BaseModel):
     operational_practices_score: int = Field(ge=0, le=1000)
     
     # Metadata
-    score_date: datetime = Field(default_factory=datetime.utcnow)
+    score_date: datetime = Field(default_factory=now_utc)
     score_version: str = "1.0"
     is_certified: bool = False
     certification_date: Optional[datetime] = None
@@ -164,7 +165,7 @@ class ComplianceScoringEngine:
         Returns:
             ComplianceScore with detailed breakdown
         """
-        logger.info(f"Calculating compliance score for EIN {ein}")
+        logger.info("Calculating compliance score for EIN %s", ein)
         
         # Calculate component scores
         governance_score = self._score_governance(organization_data)
@@ -193,7 +194,7 @@ class ComplianceScoringEngine:
         
         # Create score object
         score = ComplianceScore(
-            score_id=f"SCORE-{ein}-{datetime.utcnow().strftime('%Y%m%d')}",
+            score_id=f"SCORE-{ein}-{now_utc().strftime('%Y%m%d')}",
             ein=ein,
             organization_name=organization_data.get('name', 'Unknown'),
             overall_score=overall_score,
@@ -204,7 +205,7 @@ class ComplianceScoringEngine:
             compliance_history_score=compliance_score,
             transparency_score=transparency_score,
             operational_practices_score=operational_score,
-            next_review_date=datetime.utcnow() + timedelta(days=90),
+            next_review_date=now_utc() + timedelta(days=90),
             industry_average=self.industry_benchmarks.get('overall', 650),
             peer_group_average=self._get_peer_average(peer_group),
             score_trend=trend
@@ -213,7 +214,7 @@ class ComplianceScoringEngine:
         # Cache the score
         self.score_cache[ein] = score
         
-        logger.info(f"Score calculated for {ein}: {overall_score} ({rating.value})")
+        logger.info("Score calculated for %s: %s (%s)", ein, overall_score, rating.value)
         return score
     
     def get_score_factors(
@@ -389,7 +390,7 @@ class ComplianceScoringEngine:
         
         # Generate simulated history
         for i in range(years_back * 4):  # Quarterly scores
-            date = datetime.utcnow() - timedelta(days=90 * i)
+            date = now_utc() - timedelta(days=90 * i)
             score = base_score + (i * 10) + ((-1) ** i * 20)  # Oscillating upward trend
             score = max(300, min(900, score))  # Keep in range
             
@@ -450,7 +451,7 @@ class ComplianceScoringEngine:
         if score.overall_score < 650:
             raise ValueError(f"Score {score.overall_score} too low for certification (minimum: 650)")
         
-        certificate_id = f"CERT-{ein}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        certificate_id = f"CERT-{ein}-{now_utc().strftime('%Y%m%d%H%M%S')}"
         
         # Generate verification code
         verification_data = f"{certificate_id}|{ein}|{score.overall_score}"
@@ -462,17 +463,17 @@ class ComplianceScoringEngine:
             organization_name=score.organization_name,
             score=score.overall_score,
             rating=score.rating,
-            issued_date=datetime.utcnow(),
-            expiry_date=datetime.utcnow() + timedelta(days=validity_days),
+            issued_date=now_utc(),
+            expiry_date=now_utc() + timedelta(days=validity_days),
             certificate_url=f"https://magnus-caas.com/verify/{certificate_id}",
             verification_code=verification_code
         )
         
         # Mark score as certified
         score.is_certified = True
-        score.certification_date = datetime.utcnow()
+        score.certification_date = now_utc()
         
-        logger.info(f"Certificate issued: {certificate_id} for EIN {ein}")
+        logger.info("Certificate issued: %s for EIN %s", certificate_id, ein)
         return certificate
     
     def verify_certificate(
@@ -493,7 +494,7 @@ class ComplianceScoringEngine:
         # In production: Query database for certificate
         # Simplified verification logic
         
-        logger.info(f"Verifying certificate: {certificate_id}")
+        logger.info("Verifying certificate: %s", certificate_id)
         return len(verification_code) == 12  # Simplified check
     
     def get_public_score(self, ein: str) -> Optional[Dict]:

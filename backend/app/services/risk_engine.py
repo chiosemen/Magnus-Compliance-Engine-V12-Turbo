@@ -6,6 +6,7 @@ Version: 1.0.0
 
 from typing import List, Dict, Optional
 from datetime import datetime
+from ..utils.time_utils import now_utc
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 import logging
@@ -60,7 +61,7 @@ class RiskDetection(BaseModel):
     evidence: List[str]
     remediation_cost_estimate: Optional[float] = None
     bounty_potential: Optional[float] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
 
 
 class RiskAnalysisEngine:
@@ -107,10 +108,10 @@ class RiskAnalysisEngine:
             if fee_risk:
                 risks.append(fee_risk)
             
-            logger.info(f"Analyzed transaction {transaction.transaction_id}: {len(risks)} risks found")
+            logger.info("Analyzed transaction %s: %s risks found", transaction.transaction_id, len(risks))
             
         except Exception as e:
-            logger.error(f"Error analyzing transaction {transaction.transaction_id}: {str(e)}")
+            logger.error("Error analyzing transaction %s: %s", transaction.transaction_id, str(e))
             raise
         
         return risks
@@ -233,7 +234,7 @@ class RiskAnalysisEngine:
                 risks = self.analyze_transaction(transaction)
                 results[transaction.transaction_id] = risks
             except Exception as e:
-                logger.error(f"Batch analysis failed for {transaction.transaction_id}: {str(e)}")
+                logger.error("Batch analysis failed for %s: %s", transaction.transaction_id, str(e))
                 results[transaction.transaction_id] = []
         
         return results
@@ -250,7 +251,7 @@ if __name__ == "__main__":
         daf_id="DAF-12345",
         amount=15000.00,
         advisor_id="ADV-789",
-        timestamp=datetime.utcnow(),
+        timestamp=now_utc(),
         description="Grant to education nonprofit",
         metadata={
             "donor_relationship": "advisor",
@@ -281,7 +282,7 @@ def compute_risk_score(db, org_id, user_id):
         org_id=org_id,
         score_total=45,
         methodology_version="1.0-stress-test-safe",
-        computed_at=datetime.utcnow(),
+        computed_at=now_utc(),
         computed_by=str(user_id),
         status="ok"
     )

@@ -7,6 +7,7 @@ IRS 990 Ingestion Service
 import requests
 import hashlib
 from datetime import datetime
+from ..utils.time_utils import now_utc
 from sqlalchemy.orm import Session
 from ..models import IngestionJob, SourceDocument
 from ..config import APP_MODE
@@ -45,7 +46,7 @@ def create_ingestion_job(db: Session, org_id: str, ein: str, tax_year: int = Non
         tax_year=tax_year, 
         status="queued", 
         started_at=None,
-        created_at=datetime.utcnow()
+        created_at=now_utc()
     )
     db.add(job)
     db.commit()
@@ -62,7 +63,7 @@ def process_ingestion_job(db: Session, job_id: int):
     
     # Update status to running
     job.status = "running"
-    job.started_at = datetime.utcnow()
+    job.started_at = now_utc()
     db.commit()
     
     try:
@@ -81,12 +82,12 @@ def process_ingestion_job(db: Session, job_id: int):
             source_url=source_url,
             source_hash=sha256,
             raw_payload=raw_json,
-            fetched_at=datetime.utcnow(),
+            fetched_at=now_utc(),
             ein=job.ein
         )
         db.add(doc)
         job.status = "succeeded"
-        job.completed_at = datetime.utcnow()
+        job.completed_at = now_utc()
         db.commit()
         db.refresh(job)
         return job
@@ -94,14 +95,14 @@ def process_ingestion_job(db: Session, job_id: int):
     except IRSIngestionError as e:
         job.status = "failed"
         job.error_message = str(e)
-        job.completed_at = datetime.utcnow()
+        job.completed_at = now_utc()
         db.commit()
         db.refresh(job)
         return job
     except Exception as e:
         job.status = "failed"
         job.error_message = f"Unexpected error: {e}"
-        job.completed_at = datetime.utcnow()
+        job.completed_at = now_utc()
         db.commit()
         db.refresh(job)
         return job

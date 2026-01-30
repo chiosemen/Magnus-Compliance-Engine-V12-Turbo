@@ -40,7 +40,7 @@ class CommunicationService:
         """
         Mock email sending logic
         """
-        logger.info(f"📧 Sending Email to {request.recipient}: {request.subject}")
+        logger.info("📧 Sending Email to %s: %s", request.recipient, request.subject)
         # In production: Use SendGrid/SES client
         return True
 
@@ -48,7 +48,7 @@ class CommunicationService:
         """
         Mock SMS sending logic
         """
-        logger.info(f"📱 Sending SMS to {request.recipient}: {request.message[:20]}...")
+        logger.info("📱 Sending SMS to %s: %s...", request.recipient, request.message[:20])
         # In production: Use Twilio client
         return True
 

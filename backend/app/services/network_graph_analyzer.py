@@ -153,7 +153,7 @@ class NetworkGraphAnalysis:
             'isolated_nodes': sum(1 for v in self.adjacency_list.values() if len(v) == 0)
         }
         
-        logger.info(f"Graph built: {stats['total_nodes']} nodes, {stats['total_edges']} edges")
+        logger.info("Graph built: %s nodes, %s edges", stats['total_nodes'], stats['total_edges'])
         return stats
     
     def detect_collusion_networks(
@@ -201,7 +201,7 @@ class NetworkGraphAnalysis:
                         clusters.append(cluster)
                         cluster_id += 1
         
-        logger.info(f"Detected {len(clusters)} potential collusion networks")
+        logger.info("Detected %s potential collusion networks", len(clusters))
         return clusters
     
     def identify_circular_payments(self) -> List[Dict]:
@@ -232,7 +232,7 @@ class NetworkGraphAnalysis:
                         'irs_reporting_required': total_amount > 10000
                     })
         
-        logger.info(f"Identified {len(circular_patterns)} circular payment patterns")
+        logger.info("Identified %s circular payment patterns", len(circular_patterns))
         return circular_patterns
     
     def calculate_influence_metrics(
@@ -357,7 +357,7 @@ class NetworkGraphAnalysis:
                         'role': 'potential_hidden_controller'
                     })
         
-        logger.info(f"Mapped ownership structure: {ownership_map['total_connected_entities']} entities across {len(ownership_map['layers'])} layers")
+        logger.info("Mapped ownership structure: %s entities across %s layers", ownership_map['total_connected_entities'], len(ownership_map['layers']))
         return ownership_map
     
     def detect_shared_infrastructure(self) -> List[Dict]:
@@ -411,7 +411,7 @@ class NetworkGraphAnalysis:
                     'description': f"Advisor {advisor_id} manages {len(daf_list)} DAFs"
                 })
         
-        logger.info(f"Detected {len(shared_patterns)} shared infrastructure patterns")
+        logger.info("Detected %s shared infrastructure patterns", len(shared_patterns))
         return shared_patterns
     
     # ==================== Private Methods ====================

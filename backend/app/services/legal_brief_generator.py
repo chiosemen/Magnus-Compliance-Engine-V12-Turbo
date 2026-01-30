@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 import logging
+from ..utils.time_utils import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class LegalBrief(BaseModel):
     evidence_list: List[LegalEvidence]
     relief_sought: str
     conclusion: str
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=now_utc)
     attorney_review_required: bool = True
 
 
@@ -99,7 +100,7 @@ class LegalBriefGenerator:
         Returns:
             Complete legal brief ready for attorney review
         """
-        brief_id = f"WB-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+        brief_id = f"WB-{now_utc().strftime('%Y%m%d-%H%M%S')}"
         
         # Executive Summary
         total_amount = sum(v.get('amount', 0) for v in violations)
@@ -134,7 +135,7 @@ ${total_amount * 0.10:,.2f} based on applicable excise taxes and penalties.
                 evidence_type=e.get('type', 'document'),
                 description=e.get('description', ''),
                 source=e.get('source', 'Internal records'),
-                date=e.get('date', datetime.utcnow()),
+                date=e.get('date', now_utc()),
                 supporting_documents=e.get('documents', [])
             )
             for e in evidence
@@ -173,7 +174,7 @@ Estimated Award: ${total_amount * 0.15:,.2f} - ${total_amount * 0.30:,.2f}
             attorney_review_required=True
         )
         
-        logger.info(f"Generated whistleblower complaint {brief_id}")
+        logger.info("Generated whistleblower complaint %s", brief_id)
         return brief
     
     def generate_demand_letter(
@@ -193,7 +194,7 @@ Estimated Award: ${total_amount * 0.15:,.2f} - ${total_amount * 0.30:,.2f}
         Returns:
             Demand letter legal brief
         """
-        brief_id = f"DL-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+        brief_id = f"DL-{now_utc().strftime('%Y%m%d-%H%M%S')}"
         
         executive_summary = f"""
 DEMAND FOR REMEDIATION OF EXCESS BENEFIT TRANSACTION
@@ -286,7 +287,7 @@ Payment Deadline: {remediation_terms.get('deadline', 'DATE')}
             attorney_review_required=True
         )
         
-        logger.info(f"Generated demand letter {brief_id}")
+        logger.info("Generated demand letter %s", brief_id)
         return brief
     
     def generate_legal_memorandum(
@@ -306,7 +307,7 @@ Payment Deadline: {remediation_terms.get('deadline', 'DATE')}
         Returns:
             Legal memorandum
         """
-        brief_id = f"MEMO-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+        brief_id = f"MEMO-{now_utc().strftime('%Y%m%d-%H%M%S')}"
         
         executive_summary = f"""
 LEGAL MEMORANDUM
@@ -314,7 +315,7 @@ LEGAL MEMORANDUM
 TO: File
 FROM: Compliance Analysis Team
 RE: {issue}
-DATE: {datetime.utcnow().strftime('%B %d, %Y')}
+DATE: {now_utc().strftime('%B %d, %Y')}
 
 ISSUE: {issue}
 
@@ -336,7 +337,7 @@ BRIEF ANSWER: Based on analysis of applicable law and regulations, [CONCLUSION T
             attorney_review_required=True
         )
         
-        logger.info(f"Generated legal memorandum {brief_id}")
+        logger.info("Generated legal memorandum %s", brief_id)
         return brief
     
     def export_to_pdf(self, brief: LegalBrief) -> str:
@@ -352,7 +353,7 @@ BRIEF ANSWER: Based on analysis of applicable law and regulations, [CONCLUSION T
         # In production: Use ReportLab or WeasyPrint for PDF generation
         filename = f"{brief.brief_id}_{brief.document_type.value}.pdf"
         
-        logger.info(f"Exported brief {brief.brief_id} to PDF: {filename}")
+        logger.info("Exported brief %s to PDF: %s", brief.brief_id, filename)
         return filename
     
     # ==================== Private Methods ====================

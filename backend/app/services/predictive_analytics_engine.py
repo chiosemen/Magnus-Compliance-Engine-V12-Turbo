@@ -8,6 +8,7 @@ Version: 1.0.0
 
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
+from ..utils.time_utils import now_utc
 from pydantic import BaseModel, Field
 from enum import Enum
 import numpy as np
@@ -142,7 +143,7 @@ class PredictiveAnalyticsEngine:
                 )
                 predictions.append(predicted_risk)
         
-        logger.info(f"Generated {len(predictions)} risk predictions for DAF {daf_id}")
+        logger.info("Generated %s risk predictions for DAF %s", len(predictions), daf_id)
         return predictions
     
     def calculate_health_score(
@@ -199,7 +200,7 @@ class PredictiveAnalyticsEngine:
             comparable_dafs_count=len(comparative_universe)
         )
         
-        logger.info(f"DAF {daf_id} health score: {overall_score}/100 (percentile: {percentile})")
+        logger.info("DAF %s health score: %s/100 (percentile: %s)", daf_id, overall_score, percentile)
         return health_score
     
     def detect_anomalies(
@@ -247,7 +248,7 @@ class PredictiveAnalyticsEngine:
         temporal_anomalies = self._detect_temporal_anomalies(transactions)
         anomalies.extend(temporal_anomalies)
         
-        logger.info(f"Detected {len(anomalies)} anomalies")
+        logger.info("Detected %s anomalies", len(anomalies))
         return anomalies
     
     def identify_patterns(
@@ -302,7 +303,7 @@ class PredictiveAnalyticsEngine:
             )
             patterns.append(pattern)
         
-        logger.info(f"Identified {len(patterns)} historical patterns")
+        logger.info("Identified %s historical patterns", len(patterns))
         return patterns
     
     def generate_intervention_plan(
@@ -338,7 +339,7 @@ class PredictiveAnalyticsEngine:
         }
         
         for risk in sorted_risks[:5]:  # Top 5 risks
-            days_until_predicted = (risk.predicted_date - datetime.utcnow()).days
+            days_until_predicted = (risk.predicted_date - now_utc()).days
             
             action = {
                 'risk_type': risk.risk_type,
@@ -402,7 +403,7 @@ class PredictiveAnalyticsEngine:
                     'risk_type': 'self_dealing',
                     'probability': min(violation_rate * 2, 0.95),
                     'confidence': 0.75,
-                    'predicted_date': datetime.utcnow() + timedelta(days=days // 2),
+                    'predicted_date': now_utc() + timedelta(days=days // 2),
                     'estimated_amount': np.mean([v.get('amount', 0) for v in violations]),
                     'contributing_factors': ['Historical violation pattern', 'Increasing transaction frequency']
                 })
@@ -428,7 +429,7 @@ class PredictiveAnalyticsEngine:
                     'risk_type': 'excessive_fees',
                     'probability': 0.72,
                     'confidence': 0.80,
-                    'predicted_date': datetime.utcnow() + timedelta(days=45),
+                    'predicted_date': now_utc() + timedelta(days=45),
                     'estimated_amount': recent_avg * 1.2,
                     'contributing_factors': ['Escalating transaction amounts', 'Accelerating fee growth']
                 })

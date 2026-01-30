@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib import colors
+from ..utils.time_utils import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class TaxFormService:
         """
         Generates a high-fidelity PDF draft of IRS Form 4720
         """
-        filename = f"{REPORTS_DIR}/IRS_Form_4720_{data.ein}_{int(datetime.utcnow().timestamp())}.pdf"
+        filename = f"{REPORTS_DIR}/IRS_Form_4720_{data.ein}_{int(now_utc().timestamp())}.pdf"
         
         c = canvas.Canvas(filename, pagesize=LETTER)
         width, height = LETTER
@@ -104,7 +105,7 @@ class TaxFormService:
         c.drawCentredString(width/2, 80, "before submission to the Internal Revenue Service.")
 
         c.save()
-        logger.info(f"Generated IRS Form 4720 PDF: {filename}")
+        logger.info("Generated IRS Form 4720 PDF: %s", filename)
         return filename
 
     def _wrap_text(self, text: str, width: int) -> List[str]:

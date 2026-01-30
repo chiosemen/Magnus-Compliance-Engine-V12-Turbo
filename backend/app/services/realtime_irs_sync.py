@@ -14,6 +14,7 @@ import logging
 import asyncio
 import hashlib
 import json
+from ..utils.time_utils import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class ChangeDetection(BaseModel):
     change_type: ChangeType
     old_value: Optional[any] = None
     new_value: Optional[any] = None
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=now_utc)
     severity: str = "info"  # info, warning, critical
     alert_sent: bool = False
 
@@ -84,7 +85,7 @@ class SyncJob(BaseModel):
     job_id: str
     ein_list: List[str]
     status: FilingStatus
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=now_utc)
     completed_at: Optional[datetime] = None
     filings_processed: int = 0
     changes_detected: int = 0
@@ -98,7 +99,7 @@ class WebhookSubscription(BaseModel):
     webhook_url: str
     event_types: List[str]
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
 
 
 class RealTimeIRSSync:
@@ -140,11 +141,11 @@ class RealTimeIRSSync:
             Success status
         """
         if not self._validate_ein(ein):
-            logger.error(f"Invalid EIN format: {ein}")
+            logger.error("Invalid EIN format: %s", ein)
             return False
         
         self.monitored_eins.add(ein)
-        logger.info(f"Added EIN {ein} to monitoring for client {client_id}")
+        logger.info("Added EIN %s to monitoring for client %s", ein, client_id)
         
         # Initial sync
         self._sync_ein_data(ein)
@@ -158,7 +159,7 @@ class RealTimeIRSSync:
         Returns:
             SyncJob with results
         """
-        job_id = f"SYNC-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        job_id = f"SYNC-{now_utc().strftime('%Y%m%d%H%M%S')}"
         
         job = SyncJob(
             job_id=job_id,
@@ -166,7 +167,7 @@ class RealTimeIRSSync:
             status=FilingStatus.PROCESSING
         )
         
-        logger.info(f"Starting sync job {job_id} for {len(self.monitored_eins)} organizations")
+        logger.info("Starting sync job %s for %s organizations", job_id, len(self.monitored_eins))
         
         changes_detected = []
         
@@ -197,9 +198,9 @@ class RealTimeIRSSync:
         
         job.changes_detected = len(changes_detected)
         job.status = FilingStatus.COMPLETED
-        job.completed_at = datetime.utcnow()
+        job.completed_at = now_utc()
         
-        logger.info(f"Sync job {job_id} completed: {job.filings_processed} filings, {job.changes_detected} changes")
+        logger.info("Sync job %s completed: %s filings, %s changes", job_id, job.filings_processed, job.changes_detected)
         
         return job
     
@@ -240,7 +241,7 @@ class RealTimeIRSSync:
                 change_type = ChangeType.DAF_ADDITION if current_filing.daf_count > previous_filing.daf_count else ChangeType.DAF_REMOVAL
                 
                 changes.append(ChangeDetection(
-                    change_id=f"CHG-{ein}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                    change_id=f"CHG-{ein}-{now_utc().strftime('%Y%m%d%H%M%S')}",
                     ein=ein,
                     change_type=change_type,
                     old_value=previous_filing.daf_count,
@@ -252,7 +253,7 @@ class RealTimeIRSSync:
             if current_filing.daf_grants_amount and previous_filing.daf_grants_amount:
                 if abs(current_filing.daf_grants_amount - previous_filing.daf_grants_amount) > 50000:
                     changes.append(ChangeDetection(
-                        change_id=f"CHG-{ein}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-GRANT",
+                        change_id=f"CHG-{ein}-{now_utc().strftime('%Y%m%d%H%M%S')}-GRANT",
                         ein=ein,
                         change_type=ChangeType.REVENUE_CHANGE,
                         old_value=previous_filing.daf_grants_amount,
@@ -280,14 +281,14 @@ class RealTimeIRSSync:
             WebhookSubscription object
         """
         subscription = WebhookSubscription(
-            subscription_id=f"WH-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            subscription_id=f"WH-{now_utc().strftime('%Y%m%d%H%M%S')}",
             client_id=client_id,
             webhook_url=webhook_url,
             event_types=event_types
         )
         
         self.webhooks.append(subscription)
-        logger.info(f"Created webhook subscription {subscription.subscription_id} for client {client_id}")
+        logger.info("Created webhook subscription %s for client %s", subscription.subscription_id, client_id)
         
         return subscription
     
@@ -309,7 +310,7 @@ class RealTimeIRSSync:
         # In production: Query database for historical changes
         # This is a simulated response
         
-        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        cutoff_date = now_utc() - timedelta(days=days_back)
         
         # Simulated historical changes
         history = [
@@ -319,7 +320,7 @@ class RealTimeIRSSync:
                 change_type=ChangeType.OFFICER_CHANGE,
                 old_value="John Smith, CEO",
                 new_value="Jane Doe, CEO",
-                detected_at=datetime.utcnow() - timedelta(days=30),
+                detected_at=now_utc() - timedelta(days=30),
                 severity="info"
             ),
             ChangeDetection(
@@ -328,7 +329,7 @@ class RealTimeIRSSync:
                 change_type=ChangeType.DAF_ADDITION,
                 old_value=5,
                 new_value=7,
-                detected_at=datetime.utcnow() - timedelta(days=15),
+                detected_at=now_utc() - timedelta(days=15),
                 severity="warning"
             )
         ]
@@ -346,13 +347,13 @@ class RealTimeIRSSync:
             try:
                 # Sync all monitored organizations
                 job = self.sync_all_monitored_organizations()
-                logger.info(f"Continuous sync completed: {job.filings_processed} filings processed")
+                logger.info("Continuous sync completed: %s filings processed", job.filings_processed)
                 
                 # Wait for next sync interval
                 await asyncio.sleep(self.sync_interval_hours * 3600)
                 
             except Exception as e:
-                logger.error(f"Error in continuous monitoring: {str(e)}")
+                logger.error("Error in continuous monitoring: %s", str(e))
                 await asyncio.sleep(300)  # Wait 5 minutes before retry
     
     def export_filing_data(self, ein: str, format: str = "json") -> str:
@@ -392,7 +393,7 @@ class RealTimeIRSSync:
         filing = self._fetch_latest_filing(ein)
         if filing:
             self.filing_cache[ein] = filing
-            logger.info(f"Synced data for EIN {ein}")
+            logger.info("Synced data for EIN %s", ein)
     
     def _fetch_latest_filing(self, ein: str) -> Optional[IRSFiling]:
         """
@@ -408,12 +409,12 @@ class RealTimeIRSSync:
         
         # Generate realistic filing data
         filing = IRSFiling(
-            filing_id=f"IRS-{ein}-{datetime.utcnow().year}",
+            filing_id=f"IRS-{ein}-{now_utc().year}",
             ein=ein,
             organization_name=f"Organization {ein}",
-            tax_year=datetime.utcnow().year - 1,
+            tax_year=now_utc().year - 1,
             filing_type=FilingType.FORM_990,
-            filing_date=datetime.utcnow() - timedelta(days=30),
+            filing_date=now_utc() - timedelta(days=30),
             asset_amount=5000000.0,
             revenue_amount=2500000.0,
             expense_amount=2200000.0,
@@ -441,12 +442,12 @@ class RealTimeIRSSync:
         # Simulated previous filing with different values
         
         previous = IRSFiling(
-            filing_id=f"IRS-{ein}-{datetime.utcnow().year - 1}",
+            filing_id=f"IRS-{ein}-{now_utc().year - 1}",
             ein=ein,
             organization_name=f"Organization {ein}",
-            tax_year=datetime.utcnow().year - 2,
+            tax_year=now_utc().year - 2,
             filing_type=FilingType.FORM_990,
-            filing_date=datetime.utcnow() - timedelta(days=395),
+            filing_date=now_utc() - timedelta(days=395),
             asset_amount=4500000.0,
             revenue_amount=2300000.0,
             expense_amount=2100000.0,
@@ -558,11 +559,11 @@ class RealTimeIRSSync:
                     "new_value": change.new_value
                 }
                 
-                logger.info(f"Webhook notification sent to {webhook.webhook_url}: {change.change_id}")
+                logger.info("Webhook notification sent to %s: %s", webhook.webhook_url, change.change_id)
                 # requests.post(webhook.webhook_url, json=payload)
                 
             except Exception as e:
-                logger.error(f"Failed to send webhook to {webhook.webhook_url}: {str(e)}")
+                logger.error("Failed to send webhook to %s: %s", webhook.webhook_url, str(e))
 
 
 # ==================== Usage Example ====================

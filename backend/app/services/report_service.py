@@ -6,12 +6,13 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from datetime import datetime
+from ..utils.time_utils import now_utc
 
 REPORTS_DIR = "generated_reports"
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
 def generate_pdf_report(analysis_id, risk_score, factors, provenance):
-    filename = f"{REPORTS_DIR}/report_{analysis_id}_{int(datetime.utcnow().timestamp())}.pdf"
+    filename = f"{REPORTS_DIR}/report_{analysis_id}_{int(now_utc().timestamp())}.pdf"
     
     doc = SimpleDocTemplate(filename, pagesize=LETTER)
     styles = getSampleStyleSheet()
@@ -39,7 +40,7 @@ def generate_pdf_report(analysis_id, risk_score, factors, provenance):
     # Title
     story.append(Paragraph("Magnus Compliance Intelligence Report", title_style))
     story.append(Paragraph(f"Analysis ID: {analysis_id}", styles['Normal']))
-    story.append(Paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC", styles['Normal']))
+    story.append(Paragraph(f"Generated: {now_utc().strftime('%Y-%m-%d %H:%M:%S')} UTC", styles['Normal']))
     story.append(Spacer(1, 20))
     
     # KPI Section
