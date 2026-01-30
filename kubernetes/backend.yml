@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caas-backend
+  labels:
+    app: caas-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: caas-backend
+  template:
+    metadata:
+      labels:
+        app: caas-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/chiosemen/caas-platform/backend:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: caas-config
+        - secretRef:
+            name: caas-secrets
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caas-backend-service
+spec:
+  selector:
+    app: caas-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

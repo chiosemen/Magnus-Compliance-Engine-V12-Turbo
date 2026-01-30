@@ -1,0 +1,173 @@
+version: '3.8'
+
+# CaaS Platform - Docker Compose Configuration
+# For local development and testing
+
+services:
+  # ==================== Database ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: caas-postgres
+    environment:
+      POSTGRES_DB: caas_db
+      POSTGRES_USER: caas_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-caas_dev_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./caas_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U caas_user -d caas_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Redis Cache ====================
+  redis:
+    image: redis:7-alpine
+    container_name: caas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Backend API ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: caas-backend
+    environment:
+      DATABASE_URL: postgresql://caas_user:${POSTGRES_PASSWORD:-caas_dev_password}@postgres:5432/caas_db
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Celery Worker (Background Tasks) ====================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: caas-celery-worker
+    environment:
+      DATABASE_URL: postgresql://caas_user:${POSTGRES_PASSWORD:-caas_dev_password}@postgres:5432/caas_db
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    command: celery -A app.tasks worker --loglevel=info --concurrency=4
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Celery Beat (Scheduled Tasks) ====================
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: caas-celery-beat
+    environment:
+      DATABASE_URL: postgresql://caas_user:${POSTGRES_PASSWORD:-caas_dev_password}@postgres:5432/caas_db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    command: celery -A app.tasks beat --loglevel=info
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Frontend ====================
+  frontend:
+    build:
+      context: ./Magnus-CaaS-Turbo
+      dockerfile: Dockerfile
+      target: development
+    container_name: caas-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+      VITE_ENVIRONMENT: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Magnus-CaaS-Turbo:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+  # ==================== Nginx (Reverse Proxy) ====================
+  nginx:
+    image: nginx:alpine
+    container_name: caas-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - caas-network
+    restart: unless-stopped
+
+# ==================== Networks ====================
+networks:
+  caas-network:
+    driver: bridge
+    name: caas-network
+
+# ==================== Volumes ====================
+volumes:
+  postgres_data:
+    name: caas-postgres-data
+  redis_data:
+    name: caas-redis-data
+  backend_logs:
+    name: caas-backend-logs

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, AlertTriangle, FileText, Settings, LogOut, 
   Shield, CheckCircle, Clock, Search, Lock, Scale, 
@@ -1445,6 +1445,27 @@ const Dashboard: React.FC = () => {
       </main>
     </div>
   );
+};
+
+const IS_DEMO = import.meta.env.VITE_APP_MODE === 'demo';
+
+const DemoOnly: React.FC = () => (
+    <div className="max-w-2xl mx-auto mt-24 p-8 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 rounded shadow text-center">
+        <h2 className="text-2xl font-bold mb-4">Client Dashboard is not active.</h2>
+        <p>This area will be enabled once a production backend is connected.</p>
+    </div>
+);
+
+const Dashboard: React.FC = () => {
+    if (IS_DEMO) {
+        return <DemoOnly />;
+    }
+    return (
+        <div className="max-w-2xl mx-auto mt-24 p-8 bg-red-100 border-l-4 border-red-500 text-red-900 rounded shadow text-center">
+            <h2 className="text-2xl font-bold mb-4">Dashboard is disabled.</h2>
+            <p>Production backend required for dashboard access.</p>
+        </div>
+    );
 };
 
 export default Dashboard;

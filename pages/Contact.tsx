@@ -46,9 +46,15 @@ const Contact: React.FC = () => {
                     <textarea rows={4} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-magnus-secondary focus:border-transparent outline-none"></textarea>
                  </div>
 
-                 <button type="button" className="w-full py-3 bg-magnus-secondary text-white font-bold rounded-lg hover:bg-teal-600 transition-colors shadow-md">
-                    Send Message
-                 </button>
+                         {import.meta.env.VITE_APP_MODE === 'demo' ? (
+                            <div className="w-full py-3 bg-gray-300 text-gray-700 font-bold rounded-lg text-center cursor-not-allowed">
+                               This form is disabled in demo mode.
+                            </div>
+                         ) : (
+                            <button type="button" className="w-full py-3 bg-magnus-secondary text-white font-bold rounded-lg hover:bg-teal-600 transition-colors shadow-md">
+                               Send Message
+                            </button>
+                         )}
               </form>
            </div>
 
