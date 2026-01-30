@@ -58,8 +58,12 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-800">
             <div className="p-4">
-               <div className="text-3xl font-bold text-white mb-1">500+</div>
-               <div className="text-gray-400 text-sm uppercase tracking-wide">Nonprofits Analyzed</div>
+                             {IS_DEMO ? (
+                                 <>
+                                     <div className="text-3xl font-bold text-white mb-1">Demo</div>
+                                     <div className="text-gray-400 text-sm uppercase tracking-wide">Interactive compliance prototype</div>
+                                 </>
+                             ) : null}
             </div>
             <div className="p-4">
                <div className="text-3xl font-bold text-magnus-secondary mb-1">40%</div>
@@ -133,21 +137,29 @@ const Home: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-24 bg-gray-50 scroll-mt-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">Trusted by Leaders in Philanthropy</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex gap-1 mb-4">
-                        {[1,2,3,4,5].map(i => <div key={i} className="text-yellow-400">★</div>)}
-                    </div>
-                    <blockquote className="text-gray-700 text-lg italic mb-6">
-                        "Magnus identified $2M in unreported DAF contributions we didn't catch in our audit."
-                    </blockquote>
-                    <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500">JS</div>
-                        <div>
-                            <div className="font-bold text-gray-900">Jane Smith</div>
+      {IS_DEMO && (
+        <section id="testimonials" className="py-24 bg-gray-50 scroll-mt-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">Concept demonstration</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex gap-1 mb-4">
+                          {[1,2,3,4,5].map(i => <div key={i} className="text-yellow-400">★</div>)}
+                      </div>
+                      <blockquote className="text-gray-700 text-lg italic mb-6">
+                          "Simulated risk visualization. No real nonprofit data used."
+                      </blockquote>
+                      <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500">DEMO</div>
+                          <div>
+                              <div className="font-bold text-gray-900">Prototype User</div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        </section>
+      )}
                             <div className="text-sm text-gray-500">CFO, Education Nonprofit ($15M budget)</div>
                         </div>
                     </div>

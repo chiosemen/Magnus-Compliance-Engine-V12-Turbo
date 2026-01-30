@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caas-config
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  REDIS_URL: "redis://caas-redis-service:6379/0"
+  DATABASE_URL: "postgresql://caas_user@caas-postgres-service:5432/caas_db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: caas-secrets
+type: Opaque
+stringData:
+  SECRET_KEY: "change-me-in-production"
+  POSTGRES_PASSWORD: "change-me-in-production"
+  OPENAI_API_KEY: "your-api-key-here"

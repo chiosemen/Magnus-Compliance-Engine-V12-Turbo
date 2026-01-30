@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Search, Loader2, MapPin, ChevronDown } from 'lucide-react';
-import { analyzeOrganization, submitLeadGen } from '../../services/mockBackend';
+import { analyzeOrganization as demoAnalyzeOrganization, submitLeadGen } from '../../services/mockBackend';
+const IS_DEMO = import.meta.env.VITE_APP_MODE === 'demo';
 import { AssessmentResult } from '../../types';
 import ResultsCard from './ResultsCard';
 
@@ -26,18 +27,35 @@ const QuickCheckTool: React.FC = () => {
       setError('Please enter a valid 9-digit EIN.');
       return;
     }
-    
     setError('');
     setIsLoading(true);
-    
-    try {
-      // Simulate backend call
-      const data = await analyzeOrganization(ein, dma);
-      setResult(data);
-    } catch (err) {
-      setError('Could not fetch data. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (IS_DEMO) {
+      try {
+        const data = await demoAnalyzeOrganization(ein, dma);
+        setResult(data);
+      } catch (err) {
+        setError('Demo engine error.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      try {
+        const response = await fetch('/api/analysis/quickcheck', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ ein, org_id: 1 }) // org_id:1 placeholder
+        });
+        if (!response.ok) {
+          throw new Error('Backend unavailable. Analysis is disabled.');
+        }
+        const data = await response.json();
+        setResult(data);
+      } catch (err) {
+        setError('Backend unavailable. Analysis is disabled.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -60,13 +78,18 @@ const QuickCheckTool: React.FC = () => {
 
   if (result) {
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 scroll-mt-28" id="quick-check-results">
-            <ResultsCard 
-              result={result} 
-              onReset={resetTool} 
-              onLeadSubmit={handleLeadSubmit}
-            />
-        </div>
+      <div className="w-full max-w-4xl mx-auto px-4 scroll-mt-28" id="quick-check-results">
+        {IS_DEMO && (
+          <div className="mb-4 p-2 rounded bg-yellow-200 text-yellow-900 text-center font-bold border border-yellow-400">
+            Simulated Output — No real nonprofit data used.
+          </div>
+        )}
+        <ResultsCard 
+          result={result} 
+          onReset={resetTool} 
+          onLeadSubmit={handleLeadSubmit}
+        />
+      </div>
     );
   }
 
@@ -132,7 +155,11 @@ const QuickCheckTool: React.FC = () => {
         </form>
 
         <p className="mt-4 text-center text-xs text-gray-400">
-          *Data sourced from IRS Form 990 filings. Analysis powered by Magnus Compliance Engine V12.
+          {IS_DEMO ? (
+            <span>Simulated data. No real nonprofit analysis performed.</span>
+          ) : (
+            <span>*Data sourced from IRS Form 990 filings. Analysis powered by Magnus Compliance Engine V12.</span>
+          )}
         </p>
       </div>
     </div>
