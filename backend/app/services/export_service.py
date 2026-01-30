@@ -2,13 +2,13 @@ import os
 import json
 import hashlib
 import zipfile
-from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
 from ..models import SourceDocument, RiskScore, RiskScoreComponent, AuditEvent, ExportRecord
 from ..services.audit_service import verify_audit_chain, append_audit_event
 from ..config import APP_MODE
 from ..utils.path_utils import sanitize_path
+from ..utils.time_utils import now_utc
 
 EXPORT_BASE = "regulatory_exports"
 EXPORT_TOOL_VERSION = "1.0.0"
@@ -30,7 +30,7 @@ def compute_file_hash(path):
 def export_regulatory_package(db: Session, org_id: int, date_range: str, actor_id: int, environment: str = "real"):
     if APP_MODE == "demo":
         raise Exception("Export unavailable in demo mode")
-    now = datetime.utcnow()
+    now = now_utc()
     
     # Sanitize org_id to prevent path traversal
     if not isinstance(org_id, int) or org_id < 0:

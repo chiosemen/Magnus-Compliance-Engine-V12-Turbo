@@ -5,11 +5,15 @@ Version: 1.0.0
 """
 
 from typing import List, Dict, Optional
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pydantic import BaseModel, Field
 from enum import Enum
 import logging
 from ..utils.output_utils import escape_html
+from ..utils.time_utils import now_utc
+
+# Need datetime for Field annotation
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +43,7 @@ class RemediationCase(BaseModel):
     violation_amount: float
     tier: RemediationTier
     status: RemediationStatus = RemediationStatus.PENDING
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
     completed_at: Optional[datetime] = None
     assigned_analyst: Optional[str] = None
     estimated_cost: float
@@ -106,7 +110,7 @@ class RemediationService:
             estimated_cost=estimated_cost
         )
         
-        logger.info(f"Created remediation case {case_id} for client {client_id}")
+        logger.info("Created remediation case %s for client %s", case_id, client_id)
         return case
     
     def generate_correction_template(
@@ -131,7 +135,7 @@ class RemediationService:
         # Customize template with case details
         customized = self._customize_template(template, case)
         
-        logger.info(f"Generated template for case {case.case_id}")
+        logger.info("Generated template for case %s", case.case_id)
         return customized
     
     def generate_repayment_agreement(
@@ -153,7 +157,7 @@ class RemediationService:
 ================================================================================
 
 CASE REFERENCE: {case_id_safe}
-EFFECTIVE DATE: {datetime.utcnow().strftime('%B %d, %Y')}
+EFFECTIVE DATE: {now_utc().strftime('%B %d, %Y')}
 PARTIES:
 - Sponsoring Organization (the "Foundation")
 - Donor/Advisor: {client_id_safe} (the "Advisor")
@@ -226,7 +230,7 @@ Advisor/Donor                                 Date
                     CERTIFIED RESOLUTION OF THE BOARD
 ================================================================================
 
-DATE: {datetime.utcnow().strftime('%B %d, %Y')}
+DATE: {now_utc().strftime('%B %d, %Y')}
 SUBJECT: Approval of Remediation Plan for Case {case_id_safe}
 
 WHEREAS, the Audit Committee has presented evidence of a compliance risk 
@@ -379,7 +383,7 @@ Estimated recovery potential: ${case.violation_amount * 1.5:,.2f} (including pen
     
     def _generate_case_id(self) -> str:
         """Generate unique case ID"""
-        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        timestamp = now_utc().strftime('%Y%m%d%H%M%S')
         return f"REM-{timestamp}"
     
     def _calculate_cost(self, tier: RemediationTier, violation_amount: float) -> float:

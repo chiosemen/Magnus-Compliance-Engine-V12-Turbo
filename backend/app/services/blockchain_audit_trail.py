@@ -14,6 +14,7 @@ import logging
 import hashlib
 import json
 from collections import OrderedDict
+from ..utils.time_utils import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class AuditEvent(BaseModel):
     """Individual audit event"""
     event_id: str
     event_type: AuditEventType
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=now_utc)
     user_id: str
     client_id: str
     action_description: str
@@ -54,7 +55,7 @@ class AuditEvent(BaseModel):
 class Block(BaseModel):
     """Blockchain block containing audit events"""
     block_id: int
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=now_utc)
     events: List[AuditEvent]
     previous_hash: str
     nonce: int = 0
@@ -69,7 +70,7 @@ class BlockchainCertificate(BaseModel):
     block_id: int
     transaction_hash: str
     event_id: str
-    issued_at: datetime = Field(default_factory=datetime.utcnow)
+    issued_at: datetime = Field(default_factory=now_utc)
     verification_url: str
     qr_code_data: str
 
@@ -141,7 +142,7 @@ class BlockchainAuditTrail:
         Returns:
             AuditEvent object
         """
-        event_id = f"EVT-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+        event_id = f"EVT-{now_utc().strftime('%Y%m%d%H%M%S%f')}"
         
         event = AuditEvent(
             event_id=event_id,
@@ -155,7 +156,7 @@ class BlockchainAuditTrail:
         
         self.pending_events.append(event)
         
-        logger.info(f"Logged audit event: {event_id} ({event_type.value})")
+        logger.info("Logged audit event: %s (%s)", event_id, event_type.value)
         
         # Auto-mine block when threshold reached
         if len(self.pending_events) >= 10:
@@ -197,7 +198,7 @@ class BlockchainAuditTrail:
         # Clear pending events
         self.pending_events.clear()
         
-        logger.info(f"Mined block {block_id} with {len(block.events)} events (hash: {block.hash[:16]}...)")
+        logger.info("Mined block %s with %s events (hash: %s...)", block_id, len(block.events), block.hash[:16])
         
         return block
     
@@ -244,9 +245,9 @@ class BlockchainAuditTrail:
         is_valid = len(errors) == 0
         
         if is_valid:
-            logger.info(f"Blockchain verified: {len(self.chain)} blocks, all valid")
+            logger.info("Blockchain verified: %s blocks, all valid", len(self.chain))
         else:
-            logger.error(f"Blockchain verification failed: {len(errors)} errors")
+            logger.error("Blockchain verification failed: %s errors", len(errors))
         
         return is_valid, errors
     
@@ -289,7 +290,7 @@ class BlockchainAuditTrail:
                         }
                     )
                     
-                    logger.info(f"Verified event {event_id}: Valid={chain_valid}")
+                    logger.info("Verified event %s: Valid=%s", event_id, chain_valid)
                     return verification
         
         # Event not found
@@ -297,7 +298,7 @@ class BlockchainAuditTrail:
             is_valid=False,
             block_id=-1,
             event_id=event_id,
-            timestamp=datetime.utcnow(),
+            timestamp=now_utc(),
             chain_integrity=False,
             event_hash="",
             verification_details={'error': 'Event not found in blockchain'}
@@ -322,7 +323,7 @@ class BlockchainAuditTrail:
         if not verification.is_valid:
             raise ValueError(f"Cannot certify invalid event: {event_id}")
         
-        certificate_id = f"CERT-BC-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        certificate_id = f"CERT-BC-{now_utc().strftime('%Y%m%d%H%M%S')}"
         
         # Create certificate
         certificate = BlockchainCertificate(
@@ -334,7 +335,7 @@ class BlockchainAuditTrail:
             qr_code_data=f"https://verify.magnus-caas.com/blockchain/{certificate_id}"
         )
         
-        logger.info(f"Issued blockchain certificate: {certificate_id}")
+        logger.info("Issued blockchain certificate: %s", certificate_id)
         
         return certificate
     
@@ -376,7 +377,7 @@ class BlockchainAuditTrail:
                 
                 events.append(event)
         
-        logger.info(f"Retrieved {len(events)} audit events (filtered)")
+        logger.info("Retrieved %s audit events (filtered)", len(events))
         return events
     
     def export_blockchain(self, format: str = "json") -> str:
@@ -394,7 +395,7 @@ class BlockchainAuditTrail:
                 'metadata': {
                     'total_blocks': len(self.chain),
                     'total_events': sum(len(b.events) for b in self.chain),
-                    'export_date': datetime.utcnow().isoformat(),
+                    'export_date': now_utc().isoformat(),
                     'chain_valid': self.verify_chain()[0]
                 },
                 'blocks': [self._serialize_block(block) for block in self.chain]
@@ -494,7 +495,7 @@ class BlockchainAuditTrail:
             block_hash = self._calculate_block_hash(block)
             
             if block_hash.startswith(target):
-                logger.info(f"Block mined! Nonce: {nonce}, Hash: {block_hash[:16]}...")
+                logger.info("Block mined! Nonce: %s, Hash: %s...", nonce, block_hash[:16])
                 return block_hash
             
             nonce += 1

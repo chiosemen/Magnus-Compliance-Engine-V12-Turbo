@@ -8,10 +8,14 @@ Version: 1.0.0
 
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field, EmailStr
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import Enum
 import logging
 from ..utils.output_utils import escape_html
+from ..utils.time_utils import now_utc
+
+# Need datetime for Field annotation
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +53,7 @@ class Partner(BaseModel):
     monthly_recurring_revenue: float = 0.0
     commission_earned: float = 0.0
     api_access_enabled: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
 
 
 class PartnerCommission(BaseModel):
@@ -106,7 +110,7 @@ class APIKey(BaseModel):
     key_hash: str
     permissions: List[str]
     rate_limit: int = 1000  # requests per hour
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=now_utc)
     expires_at: Optional[datetime] = None
     last_used: Optional[datetime] = None
     usage_count: int = 0
@@ -177,7 +181,7 @@ class WhiteLabelPlatform:
         Returns:
             Partner account
         """
-        partner_id = f"PTR-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        partner_id = f"PTR-{now_utc().strftime('%Y%m%d%H%M%S')}"
         
         partner = Partner(
             partner_id=partner_id,
@@ -190,7 +194,7 @@ class WhiteLabelPlatform:
         
         self.partners[partner_id] = partner
         
-        logger.info(f"Onboarded partner {partner_id}: {company_name} ({tier.value})")
+        logger.info("Onboarded partner %s: %s (%s)", partner_id, company_name, tier.value)
         return partner
     
     def calculate_commission(
@@ -227,7 +231,7 @@ class WhiteLabelPlatform:
         partner.commission_earned += commission_amount
         partner.monthly_recurring_revenue += client_subscription_amount
         
-        logger.info(f"Calculated commission: {partner_id} earns ${commission_amount:.2f}")
+        logger.info("Calculated commission: %s earns $%.2f", partner_id, commission_amount)
         return commission
     
     def generate_partner_portal_url(
@@ -255,7 +259,7 @@ class WhiteLabelPlatform:
             subdomain = partner.company_name.lower().replace(' ', '-')
             url = f"https://{subdomain}.caas-platform.com/portal"
         
-        logger.info(f"Generated portal URL for {partner_id}: {url}")
+        logger.info("Generated portal URL for %s: %s", partner_id, url)
         return url
     
     def apply_custom_branding(
@@ -418,7 +422,7 @@ class APIMarketplace:
         
         self.integrations[integration_id] = integration
         
-        logger.info(f"Registered integration: {name} ({integration_id})")
+        logger.info("Registered integration: %s (%s)", name, integration_id)
         return integration
     
     def generate_api_key(
@@ -443,7 +447,7 @@ class APIMarketplace:
         raw_key = secrets.token_urlsafe(32)
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
         
-        api_key_id = f"KEY-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        api_key_id = f"KEY-{now_utc().strftime('%Y%m%d%H%M%S')}"
         
         api_key = APIKey(
             api_key_id=api_key_id,
@@ -451,12 +455,12 @@ class APIMarketplace:
             key_hash=key_hash,
             permissions=permissions,
             rate_limit=5000,  # Premium partners get higher limits
-            expires_at=datetime.utcnow() + timedelta(days=365)
+            expires_at=now_utc() + timedelta(days=365)
         )
         
         self.api_keys[api_key_id] = api_key
         
-        logger.info(f"Generated API key {api_key_id} for partner {partner_id}")
+        logger.info("Generated API key %s for partner %s", api_key_id, partner_id)
         
         # Return actual key only once (not stored)
         return api_key, raw_key
@@ -491,12 +495,12 @@ class APIMarketplace:
             description=description,
             category=category,
             pricing=pricing,
-            published_at=datetime.utcnow()
+            published_at=now_utc()
         )
         
         self.marketplace_apps[app_id] = app
         
-        logger.info(f"Published marketplace app: {app_name} ({app_id})")
+        logger.info("Published marketplace app: %s (%s)", app_name, app_id)
         return app
     
     def get_integration_directory(
@@ -552,7 +556,7 @@ class APIMarketplace:
             'configuration_url': f"https://app.caas-platform.com/integrations/{integration_id}/configure"
         }
         
-        logger.info(f"Installed {integration.name} for client {client_id}")
+        logger.info("Installed %s for client %s", integration.name, client_id)
         return installation_config
     
     def _seed_integrations(self):

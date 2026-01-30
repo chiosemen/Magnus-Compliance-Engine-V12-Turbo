@@ -1,10 +1,10 @@
 import json
-from datetime import datetime
 from sqlalchemy.orm import Session
 from ..models import AIInterpretation, SourceDocument, RiskScore, AuditEvent
 from ..services.audit_service import append_audit_event
 from ..config import APP_MODE
 from ..utils.input_validation import validate_int_list
+from ..utils.time_utils import now_utc
 
 AI_MODEL_VERSION = "gpt-4.1-bounded-2026-01"
 ADVISORY_DISCLAIMER = "Advisory AI Interpretation — Not a Compliance Determination"
@@ -49,7 +49,7 @@ def generate_ai_interpretation(db: Session, org_id: int, interpretation_type: st
         input_refs=json.dumps(referenced_entities),
         ai_output_text=ai_output_text,
         ai_model_version=AI_MODEL_VERSION,
-        generated_at=datetime.utcnow(),
+        generated_at=now_utc(),
         advisory_disclaimer=ADVISORY_DISCLAIMER,
         revoked=False,
         revoked_at=None
@@ -72,7 +72,7 @@ def revoke_ai_interpretation(db: Session, interpretation_id: int, actor_id: int)
     if not interp or interp.revoked:
         return None
     interp.revoked = True
-    interp.revoked_at = datetime.utcnow()
+    interp.revoked_at = now_utc()
     db.commit()
     append_audit_event(db,
         event_type="AI_INTERPRETATION_REVOKED",

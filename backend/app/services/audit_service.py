@@ -1,9 +1,9 @@
 import json
 import hashlib
-from datetime import datetime
 from sqlalchemy.orm import Session
 from ..models import AuditEvent, LitigationHold, Client
 from ..config import APP_MODE
+from ..utils.time_utils import now_utc
 
 # Canonical JSON for hash
 
@@ -34,7 +34,7 @@ def append_audit_event(db: Session, *, event_type, actor_id, org_id, entity_type
     # Get last event hash for org
     last_event = db.query(AuditEvent).filter(AuditEvent.org_id == org_id).order_by(AuditEvent.created_at.desc()).first()
     prev_hash = last_event.event_hash if last_event else None
-    now = datetime.utcnow()
+    now = now_utc()
     event_hash = compute_event_hash(
         prev_hash, event_type, actor_id, entity_type, entity_id, event_payload, now
     )
