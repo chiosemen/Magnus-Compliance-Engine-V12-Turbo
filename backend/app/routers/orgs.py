@@ -4,6 +4,7 @@ from ..db import get_db
 from ..models import Org, Membership
 from ..schemas import OrgCreate, Org
 from ..auth import require_user
+from ..utils.input_validation import validate_int_list
 
 router = APIRouter(prefix="/orgs")
 
@@ -22,4 +23,8 @@ def create_org(org_in: OrgCreate, db: Session = Depends(get_db), user=Depends(re
 def list_orgs(db: Session = Depends(get_db), user=Depends(require_user)):
     memberships = db.query(Membership).filter(Membership.user_id == user.id).all()
     org_ids = [m.org_id for m in memberships]
-    return db.query(Org).filter(Org.id.in_(org_ids)).all()
+    # Validate org_ids to prevent SQL injection
+    if org_ids:
+        validated_org_ids = validate_int_list(org_ids)
+        return db.query(Org).filter(Org.id.in_(validated_org_ids)).all()
+    return []

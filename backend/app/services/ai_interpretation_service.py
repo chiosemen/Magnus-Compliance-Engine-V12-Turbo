@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..models import AIInterpretation, SourceDocument, RiskScore, AuditEvent
 from ..services.audit_service import append_audit_event
 from ..config import APP_MODE
+from ..utils.input_validation import validate_int_list
 
 AI_MODEL_VERSION = "gpt-4.1-bounded-2026-01"
 ADVISORY_DISCLAIMER = "Advisory AI Interpretation — Not a Compliance Determination"
@@ -24,8 +25,15 @@ def generate_ai_interpretation(db: Session, org_id: int, interpretation_type: st
         # Fetch referenced evidence (read-only)
         doc_ids = referenced_entities.get("document_ids", [])
         score_ids = referenced_entities.get("score_ids", [])
-        docs = db.query(SourceDocument).filter(SourceDocument.id.in_(doc_ids)).all() if doc_ids else []
-        scores = db.query(RiskScore).filter(RiskScore.id.in_(score_ids)).all() if score_ids else []
+        # Validate IDs to prevent SQL injection
+        docs = []
+        scores = []
+        if doc_ids:
+            validated_doc_ids = validate_int_list(doc_ids)
+            docs = db.query(SourceDocument).filter(SourceDocument.id.in_(validated_doc_ids)).all()
+        if score_ids:
+            validated_score_ids = validate_int_list(score_ids)
+            scores = db.query(RiskScore).filter(RiskScore.id.in_(validated_score_ids)).all()
         # Compose context for AI (never fetch external data)
         context = {
             "documents": [json.loads(d.raw_payload) if d.raw_payload else {} for d in docs],
