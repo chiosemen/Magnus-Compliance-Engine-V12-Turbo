@@ -34,7 +34,7 @@ if APP_MODE not in ["demo", "test", "dev"]:
         sys.exit(1)
 
     if missing_vars:
-        logger.error(f"FATAL: Missing critical configuration for {APP_MODE} mode: {', '.join(missing_vars)}")
+        logger.error("FATAL: Missing critical configuration for %s mode: %s", APP_MODE, ', '.join(missing_vars))
         sys.exit(1)
 
 # Fallbacks for NON-PRODUCTION modes only

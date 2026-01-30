@@ -10,12 +10,12 @@ def task_process_ingestion_job(self, job_id: int):
     """
     Background task to process IRS 990 ingestion.
     """
-    logger.info(f"Starting ingestion task for Job ID: {job_id}")
+    logger.info("Starting ingestion task for Job ID: %s", job_id)
     db = SessionLocal()
     try:
         process_ingestion_job(db, job_id)
     except Exception as e:
-        logger.error(f"Task failed for Job ID {job_id}: {str(e)}")
+        logger.error("Task failed for Job ID %s: %s", job_id, str(e))
         # In a real scenario, we might retry based on exception type
         raise
     finally:

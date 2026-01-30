@@ -34,10 +34,10 @@ def verify_alembic_state():
         head_rev = script.get_current_head()
         
         if current_rev != head_rev:
-            logger.error(f"FATAL: Database schema drift detected. Current: {current_rev}, Expected: {head_rev}")
+            logger.error("FATAL: Database schema drift detected. Current: %s, Expected: %s", current_rev, head_rev)
             logger.error("Run 'alembic upgrade head' before starting the application.")
             sys.exit(1)
-        logger.info(f"Schema verification passed: {current_rev}")
+        logger.info("Schema verification passed: %s", current_rev)
 
 def verify_worker_availability():
     """Verify background worker connectivity."""
@@ -50,7 +50,7 @@ def verify_worker_availability():
                 # For now, we log mostly, but could set a global flag
                 pass
     except Exception as e:
-        logger.error(f"Worker connectivity check failed: {e}")
+        logger.error("Worker connectivity check failed: %s", e)
         # In production, we might want to hard fail if we can't talk to Redis at all
         if APP_MODE == "production":
              logger.error("FATAL: Cannot reach Redis broker.")
