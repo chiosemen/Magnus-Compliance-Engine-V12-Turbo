@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional
 import logging
 from .clients import SubscriptionTier, SubscriptionStatus, client_service
+from ..utils.time_utils import now_utc
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ async def stripe_webhook(request: Request):
         event_type = payload.get("type")
         data = payload.get("data", {}).get("object", {})
         
-        logger.info(f"Received Stripe event: {event_type}")
+        logger.info("Received Stripe event: %s", event_type)
 
         if event_type == "checkout.session.completed":
             await handle_checkout_completed(data)
@@ -51,12 +52,12 @@ async def stripe_webhook(request: Request):
         elif event_type == "customer.subscription.deleted":
             await handle_subscription_deleted(data)
         else:
-            logger.debug(f"Unhandled event type: {event_type}")
+            logger.debug("Unhandled event type: %s", event_type)
 
         return {"status": "success"}
 
     except Exception as e:
-        logger.error(f"Webhook processing failed: {str(e)}")
+        logger.error("Webhook processing failed: %s", str(e))
         # Failure Mode: Log event, do NOT change user permissions, retry safely
         return {"status": "error", "message": "Internal processing error"}
 
@@ -71,13 +72,13 @@ async def handle_checkout_completed(session: Dict):
     price_id = session.get("metadata", {}).get("price_id")
     
     if not client_id or not price_id:
-        logger.error(f"Missing client_id or price_id in checkout session: {session.get('id')}")
+        logger.error("Missing client_id or price_id in checkout session: %s", session.get('id'))
         return
 
     tier = PRICE_TO_TIER.get(price_id)
     if tier:
         sync_tier_to_flags(client_id, tier)
-        logger.info(f"Client {client_id} synchronized to tier {tier} via checkout")
+        logger.info("Client %s synchronized to tier %s via checkout", client_id, tier)
 
 async def handle_subscription_updated(subscription: Dict):
     """Handle subscription status or plan changes"""
@@ -96,7 +97,7 @@ async def handle_subscription_updated(subscription: Dict):
     
     if tier:
         sync_tier_to_flags(client_id, tier)
-        logger.info(f"Client {client_id} subscription updated to tier {tier}")
+        logger.info("Client %s subscription updated to tier %s", client_id, tier)
 
 async def handle_subscription_deleted(subscription: Dict):
     """Handle subscription cancellation"""
@@ -114,7 +115,7 @@ async def handle_subscription_deleted(subscription: Dict):
         # Keep flags until end of period? The sync logic says sync state.
         # For deleted, we usually strip paid flags.
         # But I'll stick to the "sync state" instruction.
-        logger.info(f"Client {client_id} subscription deleted")
+        logger.info("Client %s subscription deleted", client_id)
 
 def sync_tier_to_flags(client_id: str, tier: SubscriptionTier):
     """
@@ -122,7 +123,7 @@ def sync_tier_to_flags(client_id: str, tier: SubscriptionTier):
     """
     client = client_service.get_client(client_id)
     if not client:
-        logger.error(f"Client {client_id} not found for flag sync")
+        logger.error("Client %s not found for flag sync", client_id)
         return
 
     flags = TIER_FEATURE_FLAGS.get(tier, [])
@@ -143,4 +144,4 @@ def sync_tier_to_flags(client_id: str, tier: SubscriptionTier):
     client.tier = tier
     client.status = SubscriptionStatus.ACTIVE
     
-    logger.debug(f"Flags synced for client {client_id}: {client.metadata['feature_flags']}")
+    logger.debug("Flags synced for client %s: %s", client_id, client.metadata['feature_flags'])

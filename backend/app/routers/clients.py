@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Client as DBClient
 from ..auth import get_current_user, get_password_hash
+from ..utils.time_utils import now_utc
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -173,8 +174,8 @@ class ClientService:
             tier=client_data.tier,
             status=SubscriptionStatus.TRIAL,
             monthly_scan_limit=tier_limits["monthly_scans"],
-            subscription_start=datetime.utcnow(),
-            trial_ends_at=datetime.utcnow() + timedelta(days=30),
+            subscription_start=now_utc(),
+            trial_ends_at=now_utc() + timedelta(days=30),
             metadata_json={
                 "signup_source": "web"
             }
@@ -184,7 +185,7 @@ class ClientService:
         db.commit()
         db.refresh(client)
         
-        logger.info(f"Created client {client.client_id}: {client.organization_name}")
+        logger.info("Created client %s: %s", client.client_id, client.organization_name)
         return client
     
     def get_client(self, db: Session, client_id: str) -> Optional[DBClient]:
@@ -202,7 +203,7 @@ class ClientService:
             new_limits = TierLimits.get_limits(updates.tier)
             client.tier = updates.tier
             client.monthly_scan_limit = new_limits["monthly_scans"]
-            logger.info(f"Client {client_id} upgraded to {updates.tier}")
+            logger.info("Client %s upgraded to %s", client_id, updates.tier)
         
         if updates.status:
             client.status = updates.status
@@ -265,7 +266,7 @@ async def register_client(client_data: ClientCreate, db: Session = Depends(get_d
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Client registration failed: {str(e)}")
+        logger.error("Client registration failed: %s", str(e))
         raise HTTPException(status_code=500, detail="Registration failed")
 
 
@@ -311,7 +312,7 @@ async def request_risk_scan(
         )
     
     # Process scan asynchronously
-    scan_id = f"SCAN-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    scan_id = f"SCAN-{now_utc().strftime('%Y%m%d%H%M%S')}"
     
     # Increment usage
     client_service.increment_scan_usage(db, current_client.client_id)
@@ -323,11 +324,11 @@ async def request_risk_scan(
         daf_id=scan_request.daf_id,
         risks_detected=3,
         critical_risks=1, high_risks=1, medium_risks=1, low_risks=0,
-        completed_at=datetime.utcnow(),
+        completed_at=now_utc(),
         report_url=f"https://api.caas.com/reports/{scan_id}"
     )
     
-    logger.info(f"Scan {scan_id} completed for client {current_client.client_id}")
+    logger.info("Scan %s completed for client %s", scan_id, current_client.client_id)
     return result
 
 
@@ -353,6 +354,6 @@ async def health_check():
     """API health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": now_utc().isoformat(),
         "version": "1.0.0"
     }
