@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime, timedelta
 from enum import Enum
 import logging
+from ..utils.output_utils import escape_html
 
 logger = logging.getLogger(__name__)
 
@@ -274,11 +275,12 @@ class WhiteLabelPlatform:
         if not partner:
             raise ValueError(f"Partner {partner_id} not found")
         
+        # Escape user-supplied values to prevent XSS
         branding_config = {
-            'logo_url': partner.branding.logo_url,
-            'primary_color': partner.branding.primary_color,
-            'secondary_color': partner.branding.secondary_color,
-            'company_name': partner.branding.company_name,
+            'logo_url': escape_html(partner.branding.logo_url),
+            'primary_color': escape_html(partner.branding.primary_color),
+            'secondary_color': escape_html(partner.branding.secondary_color),
+            'company_name': escape_html(partner.branding.company_name),
             'custom_css': partner.branding.custom_css or self._generate_default_css(partner.branding)
         }
         
@@ -317,10 +319,15 @@ class WhiteLabelPlatform:
     
     def _generate_default_css(self, branding: BrandingProfile) -> str:
         """Generate default CSS from branding"""
+        # Escape user-supplied values to prevent XSS
+        primary_color = escape_html(branding.primary_color)
+        secondary_color = escape_html(branding.secondary_color)
+        logo_url = escape_html(branding.logo_url)
+        
         css = f"""
         :root {{
-            --primary-color: {branding.primary_color};
-            --secondary-color: {branding.secondary_color};
+            --primary-color: {primary_color};
+            --secondary-color: {secondary_color};
         }}
         .btn-primary {{
             background-color: var(--primary-color);
@@ -329,7 +336,7 @@ class WhiteLabelPlatform:
             background-color: var(--secondary-color);
         }}
         .logo {{
-            background-image: url('{branding.logo_url}');
+            background-image: url('{logo_url}');
         }}
         """
         return css

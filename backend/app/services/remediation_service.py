@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 from enum import Enum
 import logging
+from ..utils.output_utils import escape_html
 
 logger = logging.getLogger(__name__)
 
@@ -141,23 +142,28 @@ class RemediationService:
         """
         Generate legally robust repayment agreement document
         """
+        # Escape user-supplied data to prevent XSS
+        case_id_safe = escape_html(case.case_id)
+        client_id_safe = escape_html(case.client_id)
+        violation_type_safe = escape_html(case.violation_type)
+        
         agreement = f"""
 ================================================================================
                     DONOR-ADVISED FUND REPAYMENT AGREEMENT
 ================================================================================
 
-CASE REFERENCE: {case.case_id}
+CASE REFERENCE: {case_id_safe}
 EFFECTIVE DATE: {datetime.utcnow().strftime('%B %d, %Y')}
 PARTIES:
 - Sponsoring Organization (the "Foundation")
-- Donor/Advisor: {case.client_id} (the "Advisor")
+- Donor/Advisor: {client_id_safe} (the "Advisor")
 
 1. RECITALS
 -----------
 1.1 WHEREAS, the Foundation maintains a Donor-Advised Fund (the "Fund") as 
     defined in Section 4966(d)(2) of the Internal Revenue Code (IRC).
 1.2 WHEREAS, an internal compliance audit identified a potential transition 
-    event classified as {case.violation_type} involving the amount of 
+    event classified as {violation_type_safe} involving the amount of 
     ${case.violation_amount:,.2f}.
 1.3 WHEREAS, both parties desire to voluntarily correct this event to avoid 
     the imposition of excise taxes under IRC Section 4958 (Intermediate Sanctions).
@@ -170,7 +176,10 @@ PARTIES:
 2.2 REPAYMENT SCHEDULE:
 """
         for idx, payment in enumerate(repayment_schedule, 1):
-            agreement += f"    - Installment {idx}: ${payment['amount']:,.2f} due {payment['due_date']}\n"
+            # Escape payment data
+            amount_safe = float(payment['amount'])  # Validate as number
+            due_date_safe = escape_html(str(payment['due_date']))
+            agreement += f"    - Installment {idx}: ${amount_safe:,.2f} due {due_date_safe}\n"
         
         agreement += f"""
 3. REPRESENTATIONS AND WARRANTIES
@@ -201,23 +210,27 @@ Authorized Signatory                         Date
 _________________________                    _________________________
 Advisor/Donor                                 Date
 """
-        logger.info(f"Generated refined repayment agreement for {case.case_id}")
+        logger.info("Generated refined repayment agreement for %s", escape_html(case.case_id))
         return agreement
 
     def generate_board_resolution(self, case: RemediationCase) -> str:
         """
         Generate a corporate resolution to approve the remediation plan
         """
+        # Escape user-supplied data
+        case_id_safe = escape_html(case.case_id)
+        violation_type_safe = escape_html(case.violation_type)
+        
         resolution = f"""
 ================================================================================
                     CERTIFIED RESOLUTION OF THE BOARD
 ================================================================================
 
 DATE: {datetime.utcnow().strftime('%B %d, %Y')}
-SUBJECT: Approval of Remediation Plan for Case {case.case_id}
+SUBJECT: Approval of Remediation Plan for Case {case_id_safe}
 
 WHEREAS, the Audit Committee has presented evidence of a compliance risk 
-involving {case.violation_type} totalling ${case.violation_amount:,.2f};
+involving {violation_type_safe} totalling ${case.violation_amount:,.2f};
 
 NOW, THEREFORE, BE IT RESOLVED, that the Board of Directors hereby:
 1. APPROVES the structured remediation plan as presented by the Compliance Office;
@@ -242,15 +255,19 @@ Secretary Signature                          Date
         """
         Prepare high-fidelity IRS Form 211 draft with technical citations
         """
+        # Escape user-supplied data
+        case_id_safe = escape_html(case.case_id)
+        violation_type_safe = escape_html(case.violation_type)
+        
         form_211 = {
             "form_type": "IRS Form 211 (Application for Award for Original Information)",
             "section_1_narrative": f"""
 LEGAL ANALYSIS OF VIOLATION:
 The target organization is suspected of violating IRC 4958 and 4967 through 
-prohibited {case.violation_type} transactions. 
+prohibited {violation_type_safe} transactions. 
 
 TECHNICAL FINDINGS:
-- Transaction ID: {case.case_id}
+- Transaction ID: {case_id_safe}
 - Principal Amount: ${case.violation_amount:,.2f}
 - Violation Pattern: Patterns identified correlate with Treasury Reg 53.4958-4
   concerning economic benefits provided to disqualified persons.
