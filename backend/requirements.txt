@@ -12,3 +12,6 @@ celery
 redis
 requests
 python-multipart
+pytest
+pytest-cov
+bandit[toml]
